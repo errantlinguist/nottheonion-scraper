@@ -129,7 +129,7 @@ if __name__ == "__main__":
 		auth_data = AuthData(auth_token_response)
 		
 		
-		params = {"limit" : 100}
+		params = {"count" : 0, "limit" : 100}
 		while auth_token_response:
 			url_articles = {}
 			if auth_data.auth_expiration_time <= time.time():
