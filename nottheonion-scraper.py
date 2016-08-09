@@ -13,6 +13,7 @@ import requests.auth
 import string
 import time
 
+from collections import deque
 from urllib.parse import urlsplit
 
 DEFAULT_REQUEST_CHARSET = "UTF-8"
@@ -25,7 +26,7 @@ __VERSION = "0.0.1"
 __WEBSITE = "https://github.com/errantlinguist/nottheonion-scraper"
 
 __CRAWLING_REQUEST_HEADERS = {
-#	"Accept" : "text/html;application/xhtml+xml",
+	"Accept" : "text/html;application/xhtml+xml",
 	"Accept-Charset" : DEFAULT_REQUEST_CHARSET,
 	"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.102 Safari/537.36"
 }
@@ -86,7 +87,39 @@ def save_page(url, outpath_prefix):
 			outf.write(crawling_response.text)
 		
 		print("%s > %s" %(url, outpath), file=sys.stderr)
-					
+		
+def save_pages(urls, outpath_prefix, max_attempts):
+	url_attempt_queue = deque((url, 0) for url in urls)
+	while url_attempt_queue:
+		url, attempts = url_attempt_queue.popleft()
+		
+		outpath_infix = create_url_filename(url)
+		outpath = os.path.join(outpath_prefix, outpath_infix)
+		if os.path.exists(outpath):
+			print("File path \"%s\" already exists; Skipping." % outpath, file=sys.stderr)
+		else:
+			#print("Downloading article \"%s\"." % url, file=sys.stderr)
+			crawling_response = requests.get(url, headers=__CRAWLING_REQUEST_HEADERS)
+			try:
+				crawling_response.raise_for_status()
+			
+				# After getting the response data, write it to file
+				outdir = os.path.dirname(outpath)
+				if not os.path.exists(outdir):
+					os.makedirs(outdir)
+				with open(outpath, 'w') as outf:
+					outf.write(crawling_response.text)
+	
+				print("%s > %s" %(url, outpath), file=sys.stderr)
+				
+			except requests.HTTPError as e:
+				attempts += 1
+				code = crawling_response.status_code
+				if max_attempts < attempts:
+					print("Received HTTP status %d while attempting to retrieve \"%s\" (attempt %d); Giving up." %(code, url, attempts), file=sys.stderr)
+				else:
+					print("Received HTTP status %d while attempting to retrieve \"%s\" (attempt %d); Will try again later." %(code, url, attempts), file=sys.stderr)
+					url_attempt_queue.append((url, attempts))
 		
 def scrape_reddit_thing_urls_from_response(response):
 	data = response.json()["data"]
@@ -139,8 +172,9 @@ if __name__ == "__main__":
 			next_page_response = requests.get("https://oauth.reddit.com/r/nottheonion/.json", headers=headers, params=params)
 			try:
 				next_page_response.raise_for_status()
-			except HTTPError:
-				if next_page_response.status_code == 403:
+			except requests.HTTPError as e:
+				code = next_page_response.status_code
+				if code == 403:
 					print("Refreshing authentication token.", file=sys.stderr)
 					auth_token_response = refresh_auth_token(auth_data.access_token, auth)
 					auth_token_response.raise_for_status()
@@ -154,8 +188,7 @@ if __name__ == "__main__":
 			
 			print("Retrieving %d articles." % len(urls), file=sys.stderr)
 			outdir = sys.argv[2]
-			for url in urls:
-				save_page(url, outdir)
+			save_pages(urls, outdir, 3)
 			
 			params["count"] += len(urls)
 			if last_thing_name:
