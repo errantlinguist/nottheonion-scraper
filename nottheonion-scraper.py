@@ -165,8 +165,8 @@ if __name__ == "__main__":
 			outdir = sys.argv[2]
 			save_pages(url_articles, outdir)
 			
+			params["count"] += len(url_articles)
 			if last_thing_name:
-				params["count"] += len(url_articles)
 				params["after"] = last_thing_name
 			else:
 				break
