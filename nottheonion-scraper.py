@@ -130,7 +130,6 @@ def scrape_reddit_thing_urls(data):
 			
 def __normalize_filename_suffix(filename):
 	result = filename
-	print("pathsep: " + os.path.sep)
 	if result.endswith(os.path.sep):
 		result = result[:len(result) - len(os.path.sep)]
 	match =  __OUTPATH_SUFFIX_VARIANT_PATTERN.match(result)
