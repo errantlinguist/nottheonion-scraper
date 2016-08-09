@@ -24,10 +24,16 @@ __CLIENT_ID = "nottheonion-scraper"
 __VERSION = "0.0.1"
 __WEBSITE = "https://github.com/errantlinguist/nottheonion-scraper"
 
+__CRAWLING_REQUEST_HEADERS = {
+#	"Accept" : "text/html;application/xhtml+xml",
+	"Accept-Charset" : DEFAULT_REQUEST_CHARSET,
+	"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.102 Safari/537.36"
+}
+
 '''
 See: https://github.com/reddit/reddit/wiki/API#user-content-rules
 '''
-__USER_AGENT_STR = "%(platform)s:%(app_id)s:%(version)s (by /u/%(reddit_username)s)" % {"platform" : sys.platform, "app_id" : __CLIENT_ID, "version" : __VERSION, "reddit_username" : __AUTHOR_REDDIT_USERNAME}
+__REDDIT_USER_AGENT_STR = "%(platform)s:%(app_id)s:%(version)s (by /u/%(reddit_username)s)" % {"platform" : sys.platform, "app_id" : __CLIENT_ID, "version" : __VERSION, "reddit_username" : __AUTHOR_REDDIT_USERNAME}
 
 
 class AuthData(object):
@@ -51,48 +57,35 @@ def create_url_filename(url_str):
 def refresh_auth_token(refresh_token, auth):
 	post_data = {"grant_type": "refresh_token", "refresh_token" : refresh_token}
 	headers = {
-		"User-Agent" : __USER_AGENT_STR
+		"User-Agent" : __REDDIT_USER_AGENT_STR
 	}
 	return requests.post("https://www.reddit.com/api/v1/access_token", auth=auth, data=post_data, headers=headers)	
 	
 def retrieve_auth_token(auth):
 	post_data = {"grant_type": "client_credentials"}
 	headers = {
-		"User-Agent" : __USER_AGENT_STR
+		"User-Agent" : __REDDIT_USER_AGENT_STR
 	}
 	return requests.post("https://www.reddit.com/api/v1/access_token", auth=auth, data=post_data, headers=headers)
-	
-def save_pages(url_articles, outpath_prefix):
-	for url, article in url_articles.items():
-		outpath_infix = create_url_filename(url)
-		outpath = os.path.join(outpath_prefix, outpath_infix)
-		if os.path.exists(outpath):
-			print("File path \"%s\" already exists; Skipping." % outpath, file=sys.stderr)
-		else:
-			#print("Downloading article \"%s\"." % url, file=sys.stderr)
-			article.download()
-			try:
-				article.parse()
-			except newspaper.ArticleException as e:
-				if article.is_downloaded:
-					raise e
-				else:
-					print("Downloading the article for URL \"%s\" was not successful; Trying to download again." % url, file=sys.stderr)
-					
-			# After getting the response data, write it to file
-			outdir = os.path.dirname(outpath)
-			if not os.path.exists(outdir):
-				os.makedirs(outdir)
-			with open(outpath, 'w') as outf:
-				outf.write(article.html)
-			
-			# Write the stripped contents to a text file
-			with open(outpath + ".txt", 'w') as outf:
-				outf.write(article.text)
+
+def save_page(url, outpath_prefix):
+	outpath_infix = create_url_filename(url)
+	outpath = os.path.join(outpath_prefix, outpath_infix)
+	if os.path.exists(outpath):
+		print("File path \"%s\" already exists; Skipping." % outpath, file=sys.stderr)
+	else:
+		#print("Downloading article \"%s\"." % url, file=sys.stderr)
+		crawling_response = requests.get(url, headers=__CRAWLING_REQUEST_HEADERS)
+		crawling_response.raise_for_status()
 				
-			print("%s > %s" %(url, outpath), file=sys.stderr)
-			
-					
+		# After getting the response data, write it to file
+		outdir = os.path.dirname(outpath)
+		if not os.path.exists(outdir):
+			os.makedirs(outdir)
+		with open(outpath, 'w') as outf:
+			outf.write(crawling_response.text)
+		
+		print("%s > %s" %(url, outpath), file=sys.stderr)
 					
 		
 def scrape_reddit_thing_urls_from_response(response):
@@ -131,7 +124,7 @@ if __name__ == "__main__":
 		
 		params = {"count" : 0, "limit" : 100}
 		while auth_token_response:
-			url_articles = {}
+			urls = set()
 			if auth_data.auth_expiration_time <= time.time():
 				print("Refreshing authentication token.", file=sys.stderr)
 				auth_token_response = refresh_auth_token(auth_data.access_token, auth)
@@ -142,7 +135,7 @@ if __name__ == "__main__":
 				"Accept" : "application/json",
 				"Accept-Charset" : DEFAULT_REQUEST_CHARSET,
 				"Authorization": auth_data.token_type + " " + auth_data.access_token,
-				"User-Agent": __USER_AGENT_STR}
+				"User-Agent": __REDDIT_USER_AGENT_STR}
 			next_page_response = requests.get("https://oauth.reddit.com/r/nottheonion/.json", headers=headers, params=params)
 			try:
 				next_page_response.raise_for_status()
@@ -155,17 +148,16 @@ if __name__ == "__main__":
 					
 				
 			reddit_thing_urls, last_thing_name = scrape_reddit_thing_urls_from_response(next_page_response)
-			urls = (url for name, url in reddit_thing_urls)
-			for url in urls:
+			for name, url in reddit_thing_urls:
 				#print("Adding URL \"%s\" to batch." % url, file=sys.stderr)
-				article = newspaper.Article(url, follow_meta_refresh=False, keep_article_html=True)
-				url_articles[url] = article
+				urls.add(url)
 			
-			print("Retrieving %d articles." % len(url_articles), file=sys.stderr)
+			print("Retrieving %d articles." % len(urls), file=sys.stderr)
 			outdir = sys.argv[2]
-			save_pages(url_articles, outdir)
+			for url in urls:
+				save_page(url, outdir)
 			
-			params["count"] += len(url_articles)
+			params["count"] += len(urls)
 			if last_thing_name:
 				params["after"] = last_thing_name
 			else:

@@ -9,5 +9,4 @@ A script for getting a corpus of "Onion-like" albeit real news articles.
 Requirements
 --------------------------------------------------------------------------------
 - Python 3
-- [newspaper](https://newspaper.readthedocs.io)
 - [Requests](https://requests.readthedocs.org/)
