@@ -201,5 +201,9 @@ if __name__ == "__main__":
 				
 		successful_url_count = len(attempted_urls) - len(failed_urls)
 		print("Retrieved %d out of %d unique pages returned by reddit." % (successful_url_count, len(attempted_urls)), file=sys.stderr)
+		print()
+		print("Failed URLS:")
+		for failed_url in failed_urls:
+			print(failed_url)
 		
 		
