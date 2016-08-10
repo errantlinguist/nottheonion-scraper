@@ -10,7 +10,6 @@ import newspaper
 import random
 import re
 import requests
-import requests.auth
 import string
 import time
 
