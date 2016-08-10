@@ -61,7 +61,7 @@ class CrawlStatistics(object):
 		self.attempted = set()
 		self.failed = set()
 		
-		self.time_range = (0, 0)
+		self.time_range = (float("inf"), float("-inf"))
 		
 	def notify_attempt(self, key, time):
 		# Calculate new range even for possible duplicate attempts
