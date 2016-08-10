@@ -147,7 +147,10 @@ class SubredditLinkCrawler(object):
 			if last_thing_name:
 				self.last_scraped_thing = last_thing_name
 			else:
-				print("End of subreddit encountered; Aborting after having processed %d of an intended %d URLs." %(self.processed_url_count, self.limit), file=sys.stderr)
+				if self.limit == float("inf"):
+					print("End of subreddit encountered; Aborting after having processed %d URLs." %self.processed_url_count, file=sys.stderr)
+				else:
+					print("End of subreddit encountered; Aborting after having processed %d of an intended %d URLs." %(self.processed_url_count, self.limit), file=sys.stderr)
 				break
 			
 		print("Retrieved %d out of %d unique pages returned by reddit." % (self.processed_url_count, len(self.stats.attempted)), file=sys.stderr)
