@@ -341,7 +341,7 @@ if __name__ == "__main__":
 	parser.add_argument("-r", "--max-retries", default=3, help="The number of times to re-try requesting a given URL if a non-successful HTTP code is returned on the first attempt.", metavar="COUNT", type=int)
 	
 	args = parser.parse_args()
-	print("Scraping links from subreddit \"%s\" and saving to \"%s\"." % (args.subreddit, args.outdir))
+	print("Scraping links from subreddit \"%s\" and saving to \"%s\"." % (args.subreddit, args.outdir), file=sys.stderr)
 	auth = ("_JNFnqor9ZT4mQ", args.secret)
 	crawler = SubredditLinkCrawler(auth, args.subreddit, args.outdir, args.limit, args.batch_size, args.max_retries, __REDDIT_USER_AGENT_STR)
 	stats = crawler.crawl()
