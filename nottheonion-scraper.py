@@ -13,11 +13,10 @@ __reddit_redirect_uri__ = "https://github.com/errantlinguist/nottheonion-scraper
 __version__ = "0.0.1"
 __website__ = "https://github.com/errantlinguist/nottheonion-scraper"
 
-
+import argparse
 import mimetypes
 import os
 import sys
-import re
 import requests
 import string
 import time
@@ -107,7 +106,7 @@ def retrieve_auth_token(auth):
 	}
 	return requests.post("https://www.reddit.com/api/v1/access_token", auth=auth, data=post_data, headers=headers)
 		
-def save_pages(urls, outpath_prefix, max_attempts):
+def save_pages(urls, outpath_prefix, max_retries):
 	result = set()
 	url_attempt_queue = deque((url, 0) for url in urls)
 	while url_attempt_queue:
@@ -130,6 +129,7 @@ def save_pages(urls, outpath_prefix, max_attempts):
 			try:
 				crawling_response = requests.get(url, headers=__CRAWLING_REQUEST_HEADERS)
 				try:
+					attempts += 1
 					crawling_response.raise_for_status()
 					response_content_type = crawling_response.headers["Content-Type"]
 					if response_content_type:
@@ -155,9 +155,8 @@ def save_pages(urls, outpath_prefix, max_attempts):
 						print("%s > %s" %(url, outpath), file=sys.stderr)
 				
 				except requests.HTTPError as e:
-					attempts += 1
 					code = crawling_response.status_code
-					if max_attempts < attempts:
+					if attempts > max_retries:
 						print("Received HTTP status %d while requesting URL \"%s\" (attempt %d); Giving up." %(code, url, attempts), file=sys.stderr)
 						result.add(url)
 					else:
@@ -196,73 +195,80 @@ def write_to_unknown_dir(outpath, content):
 		outf.write(content)
 		
 if __name__ == "__main__":
-	if len(sys.argv) != 3:
-		print("Usage: %s REDDIT_APP_SECRET OUTDIR" % sys.argv[0], file=sys.stderr)
-		sys.exit(64)
-	else:
-		# Oauth2 authentication <https://github.com/reddit/reddit/wiki/OAuth2#user-content-authorization>
-		# https://github.com/reddit/reddit/wiki/OAuth2-Quick-Start-Example#user-content-python-example
-		secret = sys.argv[1]
-		auth=("_JNFnqor9ZT4mQ", secret)
-		auth_token_response = retrieve_auth_token(auth)
-		auth_token_response.raise_for_status()
-		auth_data = AuthData(auth_token_response)
-		
-		
-		params = {"count" : 0, "limit" : 100}
-		attempted_urls = set()
-		failed_urls = set()
-		while auth_token_response:
-			batch_urls = []
-			if auth_data.auth_expiration_time <= time.time():
+	parser = argparse.ArgumentParser(description="Scrape all links from the subreddit \"nottheonion\" and then crawl and save each the linked page.")
+	parser.add_argument("-s", "--subreddit", default="nottheonion", help="The name of the subreddit to crawl.")
+	parser.add_argument("secret", help="The reddit application secret.")
+	parser.add_argument("outdir", help="The directory path under which the crawled pages will be saved.")
+	parser.add_argument("-r", "--max-retries", default=3, help="The number of times to re-try requesting a given URL if a non-successful HTTP code is returned on the first attempt.", metavar="COUNT", type=int)
+	
+	args = parser.parse_args()
+	print("Scraping links from subreddit \"%s\" and saving to \"%s\"." % (args.subreddit, args.outdir))
+	
+	# Oauth2 authentication <https://github.com/reddit/reddit/wiki/OAuth2#user-content-authorization>
+	# https://github.com/reddit/reddit/wiki/OAuth2-Quick-Start-Example#user-content-python-example
+	secret = args.secret
+	auth=("_JNFnqor9ZT4mQ", secret)
+	auth_token_response = retrieve_auth_token(auth)
+	auth_token_response.raise_for_status()
+	auth_data = AuthData(auth_token_response)
+	
+	
+	params = {"count" : 0, "limit" : 100}
+	attempted_urls = set()
+	failed_urls = set()
+	while auth_token_response:
+		batch_urls = []
+		if auth_data.auth_expiration_time <= time.time():
+			print("Refreshing authentication token.", file=sys.stderr)
+			auth_token_response = refresh_auth_token(auth_data.access_token, auth)
+			auth_token_response.raise_for_status()
+			auth_data = AuthData(auth_token_response)
+			
+		headers = {
+			"Accept" : "application/json",
+			"Accept-Charset" : DEFAULT_REQUEST_CHARSET,
+			"Authorization": auth_data.token_type + " " + auth_data.access_token,
+			"User-Agent": __REDDIT_USER_AGENT_STR}
+			
+		get_method = "https://oauth.reddit.com/r/" + args.subreddit + "/.json"
+		next_page_response = requests.get(get_method, headers=headers, params=params)
+		try:
+			next_page_response.raise_for_status()
+		except requests.HTTPError as e:
+			code = next_page_response.status_code
+			if code == requests.status_codes.codes.unauthorized or code == requests.status_codes.codes.forbidden:
 				print("Refreshing authentication token.", file=sys.stderr)
 				auth_token_response = refresh_auth_token(auth_data.access_token, auth)
 				auth_token_response.raise_for_status()
 				auth_data = AuthData(auth_token_response)
-				
-			headers = {
-				"Accept" : "application/json",
-				"Accept-Charset" : DEFAULT_REQUEST_CHARSET,
-				"Authorization": auth_data.token_type + " " + auth_data.access_token,
-				"User-Agent": __REDDIT_USER_AGENT_STR}
-			next_page_response = requests.get("https://oauth.reddit.com/r/nottheonion/.json", headers=headers, params=params)
-			try:
+				# Try again after having refreshed the auth token
+				next_page_response = requests.get(get_method, headers=headers, params=params)
 				next_page_response.raise_for_status()
-			except requests.HTTPError as e:
-				code = next_page_response.status_code
-				if code == requests.status_codes.codes.unauthorized or code == requests.status_codes.codes.forbidden:
-					print("Refreshing authentication token.", file=sys.stderr)
-					auth_token_response = refresh_auth_token(auth_data.access_token, auth)
-					auth_token_response.raise_for_status()
-					auth_data = AuthData(auth_token_response)
-					# Try again after having refreshed the auth token
-					next_page_response = requests.get("https://oauth.reddit.com/r/nottheonion/.json", headers=headers, params=params)
-					next_page_response.raise_for_status()
-				
-			reddit_thing_urls, last_thing_name = scrape_reddit_thing_urls_from_response(next_page_response)
-			for name, url in reddit_thing_urls:
-				#print("Adding URL \"%s\" to batch." % url, file=sys.stderr)
-				old_attempted_urls_len = len(attempted_urls)
-				attempted_urls.add(url)
-				if len(attempted_urls) > old_attempted_urls_len:
-					batch_urls.append(url)
-				else:
-					print("URL \"%s\" has already been processed; Skipping." % url, file=sys.stderr)
 			
-			print("Retrieving %d articles." % len(batch_urls), file=sys.stderr)
-			outdir = sys.argv[2]
-			failed_urls.update(save_pages(batch_urls, outdir, 3))
-			
-			params["count"] += len(batch_urls)
-			if last_thing_name:
-				params["after"] = last_thing_name
+		reddit_thing_urls, last_thing_name = scrape_reddit_thing_urls_from_response(next_page_response)
+		for name, url in reddit_thing_urls:
+			#print("Adding URL \"%s\" to batch." % url, file=sys.stderr)
+			old_attempted_urls_len = len(attempted_urls)
+			attempted_urls.add(url)
+			if len(attempted_urls) > old_attempted_urls_len:
+				batch_urls.append(url)
 			else:
-				break
-				
-		successful_url_count = len(attempted_urls) - len(failed_urls)
-		print("Retrieved %d out of %d unique pages returned by reddit." % (successful_url_count, len(attempted_urls)), file=sys.stderr)
-		print("Failed URLS:")
-		for failed_url in failed_urls:
-			print(failed_url)
+				print("URL \"%s\" has already been processed; Skipping." % url, file=sys.stderr)
+		
+		print("Retrieving %d articles." % len(batch_urls), file=sys.stderr)
+		outdir = args.outdir
+		failed_urls.update(save_pages(batch_urls, outdir, args.max_retries))
+		
+		params["count"] += len(batch_urls)
+		if last_thing_name:
+			params["after"] = last_thing_name
+		else:
+			break
+			
+	successful_url_count = len(attempted_urls) - len(failed_urls)
+	print("Retrieved %d out of %d unique pages returned by reddit." % (successful_url_count, len(attempted_urls)), file=sys.stderr)
+	print("Failed URLS:")
+	for failed_url in failed_urls:
+		print(failed_url)
 		
 		
