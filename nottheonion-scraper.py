@@ -181,6 +181,7 @@ if __name__ == "__main__":
 					auth_data = AuthData(auth_token_response)
 					# Try again after having refreshed the auth token
 					next_page_response = requests.get("https://oauth.reddit.com/r/nottheonion/.json", headers=headers, params=params)
+					next_page_response.raise_for_status()
 				
 			reddit_thing_urls, last_thing_name = scrape_reddit_thing_urls_from_response(next_page_response)
 			for name, url in reddit_thing_urls:
