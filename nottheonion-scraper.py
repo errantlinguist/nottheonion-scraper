@@ -4,6 +4,11 @@
 A script for getting a corpus of "Onion-like" albeit real news articles.
 '''
 
+__reddit_author_username__ = "errantlinguist"
+__reddit_app_name__ = "nottheonion-scraper"
+__reddit_redirect_uri__ = "https://github.com/errantlinguist/nottheonion-scraper"
+__version__ = "0.0.1"
+
 import os
 import sys
 import newspaper
@@ -21,9 +26,6 @@ DEFAULT_REQUEST_CHARSET = "UTF-8"
 
 URL_FILENAME_TRANSLATION_TABLE = {ord(':') : '-', ord('/') : os.path.sep, ord('\\') : '-', ord('*') : '-', ord('?') : '-', ord('"') : '\'', ord('<') : '-', ord('>') : '-', ord('|') : '-', ord('\0') : '0', ord('.') : os.path.sep}
 
-__AUTHOR_REDDIT_USERNAME = "errantlinguist"
-__CLIENT_ID = "nottheonion-scraper"
-__VERSION = "0.0.1"
 __WEBSITE = "https://github.com/errantlinguist/nottheonion-scraper"
 
 __CRAWLING_REQUEST_HEADERS = {
@@ -38,7 +40,7 @@ __OUTPATH_SUFFIX_VARIANT_PATTERN = re.compile("\.x?html?$")
 '''
 See: https://github.com/reddit/reddit/wiki/API#user-content-rules
 '''
-__REDDIT_USER_AGENT_STR = "%(platform)s:%(app_id)s:%(version)s (by /u/%(reddit_username)s)" % {"platform" : sys.platform, "app_id" : __CLIENT_ID, "version" : __VERSION, "reddit_username" : __AUTHOR_REDDIT_USERNAME}
+__REDDIT_USER_AGENT_STR = "%(platform)s:%(app_id)s:%(version)s (by /u/%(reddit_username)s)" % {"platform" : sys.platform, "app_id" : __reddit_app_name__, "version" : __version__, "reddit_username" : __reddit_author_username__}
 
 
 class AuthData(object):
@@ -172,7 +174,7 @@ if __name__ == "__main__":
 				next_page_response.raise_for_status()
 			except requests.HTTPError as e:
 				code = next_page_response.status_code
-				if code == 401 or code == 403:
+				if code == requests.status_codes.codes.unauthorized or code == requests.status_codes.codes.forbidden:
 					print("Refreshing authentication token.", file=sys.stderr)
 					auth_token_response = refresh_auth_token(auth_data.access_token, auth)
 					auth_token_response.raise_for_status()
