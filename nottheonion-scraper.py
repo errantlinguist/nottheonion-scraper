@@ -172,7 +172,7 @@ if __name__ == "__main__":
 				next_page_response.raise_for_status()
 			except requests.HTTPError as e:
 				code = next_page_response.status_code
-				if code == 403:
+				if code == 401 or code == 403:
 					print("Refreshing authentication token.", file=sys.stderr)
 					auth_token_response = refresh_auth_token(auth_data.access_token, auth)
 					auth_token_response.raise_for_status()
