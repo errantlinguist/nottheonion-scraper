@@ -136,7 +136,7 @@ def save_pages(urls, outpath_prefix, max_attempts):
 						# Strip any possible encoding data
 						response_content_type = parse_header(response_content_type)[0]
 						if response_content_type != guessed_content_type:
-							print("Re-calculating output path for received content type \"%s\"." % response_content_type, file=sys.stderr)
+							#print("Re-calculating output path for received content type \"%s\"." % response_content_type, file=sys.stderr)
 							outpath_filename = create_url_filename(url, response_content_type)
 							outpath = os.path.join(outpath_prefix, outpath_filename)
 							if os.path.exists(outpath):
