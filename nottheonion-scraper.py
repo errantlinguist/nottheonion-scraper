@@ -6,8 +6,6 @@ A script for getting a corpus of "Onion-like" albeit real news articles.
 
 import os
 import sys
-import newspaper
-import random
 import re
 import requests
 import string
