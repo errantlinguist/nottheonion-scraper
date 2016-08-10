@@ -138,7 +138,7 @@ class SubredditLinkCrawler(object):
 				else:
 					print("URL \"%s\" has already been processed; Skipping." % url, file=sys.stderr)
 		
-			print("Processing %d crawled URLs." % len(batch_urls), file=sys.stderr)
+			#print("Processing %d crawled URLs." % len(batch_urls), file=sys.stderr)
 			failed_urls = save_pages(batch_urls, self.outdir, self.max_retries)
 			self.stats.failed.update(failed_urls)
 			successful_url_count = len(batch_urls) - len(failed_urls)
