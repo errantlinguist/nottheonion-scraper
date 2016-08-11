@@ -60,7 +60,6 @@ class CrawlStatistics(object):
 	def __init__(self):
 		self.attempted = set()
 		self.failed = set()
-		
 		self.time_range = (float("inf"), float("-inf"))
 		
 	def notify_attempt(self, key, time):
@@ -179,9 +178,13 @@ class SubredditLinkCrawler(object):
 		return result
 
 def create_url_filename(url_str, content_type):
-	# http://stackoverflow.com/a/7406369/1391325
+	# See also: http://stackoverflow.com/a/7406369/1391325
 	split_url = urlsplit(url_str)
-	stripped_url_str = "".join(part for part in split_url[1:3])
+	netloc = split_url[1]
+	netloc_dirname = os.path.sep.join(reversed(netloc.split('.')))
+	path = split_url[2]
+	query = split_url[3]
+	stripped_url_str = "".join((netloc_dirname, path, query))
 	url_without_ext, existing_ext = os.path.splitext(stripped_url_str)
 	filename_without_ext = url_without_ext.translate(URL_FILENAME_TRANSLATION_TABLE)
 	if filename_without_ext.endswith(os.path.sep):
