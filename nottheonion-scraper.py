@@ -51,10 +51,10 @@ __AUTH_TOKEN_REQUEST_HEADERS = {
 
 class AuthTokenData(object):
 	def __init__(self, auth_token_response):
-		self.json = auth_token_response.json()
-		self.token_type = self.json["token_type"]
-		self.access_token = self.json["access_token"]
-		self.auth_expiration_time = time.time() + int(self.json["expires_in"])
+		json = auth_token_response.json()
+		self.token_type = json["token_type"]
+		self.access_token = json["access_token"]
+		self.auth_expiration_time = time.time() + int(json["expires_in"])
 		
 class CrawlStatistics(object):
 	def __init__(self):
