@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 '''
-A script for getting a corpus of "Onion-like" <http://www.theonion.com/> albeit real news articles.
+A script for crawling all links listed in a given subreddit and saving them to a given directory.
 '''
 
 __author__ = "Todd Shore"
 __copyright__ = "Copyright 2016 Todd Shore"
 __license__ = "GPL"
 __reddit_author_username__ = "errantlinguist"
-__reddit_app_name__ = "nottheonion-scraper"
-__reddit_redirect_uri__ = "https://github.com/errantlinguist/nottheonion-scraper"
+__reddit_app_name__ = "subreddit-link-crawler"
+__reddit_redirect_uri__ = "https://github.com/errantlinguist/subreddit-link-crawler"
 __version__ = "0.0.1"
-__website__ = "https://github.com/errantlinguist/nottheonion-scraper"
+__website__ = "https://github.com/errantlinguist/subreddit-link-crawler"
 
 import argparse
 import datetime
