@@ -182,8 +182,7 @@ def create_url_filename(url_str, content_type):
 	netloc = split_url[1]
 	netloc_dirname = os.path.sep.join(reversed(netloc.split('.')))
 	path = split_url[2]
-	query = split_url[3]
-	stripped_url_str = "".join((netloc_dirname, path, query))
+	stripped_url_str = "".join((netloc_dirname, path))
 	url_without_ext, existing_ext = os.path.splitext(stripped_url_str)
 	filename_without_ext = url_without_ext.translate(URL_FILENAME_TRANSLATION_TABLE)
 	if filename_without_ext.endswith(os.path.sep):
