@@ -87,18 +87,18 @@ class SubredditLinkCrawler(object):
 		self.outdir = outdir
 		self.user_agent = user_agent
 		
-		self.scraped_url_count = 0
-		self.last_scraped_thing = None
+		self.parsed_url_count = 0
+		self.last_parsed_thing = None
 		self.stats = CrawlStatistics()
 		
 		self.processed_url_count = 0
 		
-		self.__params = {"count" : self.scraped_url_count, "limit" :  batch_size}
+		self.__params = {"count" : self.parsed_url_count, "limit" :  batch_size}
 	
 	@property	
 	def params(self):
-		self.__params["after"] = self.last_scraped_thing
-		self.__params["count"] = self.scraped_url_count
+		self.__params["after"] = self.last_parsed_thing
+		self.__params["count"] = self.parsed_url_count
 		if self.remaining_url_count < self.__params["limit"]:
 			self.__params["limit"] = self.remaining_url_count
 		return self.__params
@@ -128,9 +128,9 @@ class SubredditLinkCrawler(object):
 				else:
 					raise e
 			
-			reddit_thing_urls, last_thing_name = scrape_reddit_thing_urls_from_response(next_page_response)
+			reddit_thing_urls, last_thing_name = parse_reddit_thing_urls_from_response(next_page_response)
 			for name, creation_timestamp, url in reddit_thing_urls:
-				self.scraped_url_count += 1
+				self.parsed_url_count += 1
 				#print("Adding URL \"%s\" to batch." % url, file=sys.stderr)
 				if self.stats.notify_attempt(url, creation_timestamp):
 					batch_urls.append(url)
@@ -144,7 +144,7 @@ class SubredditLinkCrawler(object):
 			self.processed_url_count += successful_url_count
 		
 			if last_thing_name:
-				self.last_scraped_thing = last_thing_name
+				self.last_parsed_thing = last_thing_name
 			else:
 				if self.limit == float("inf"):
 					print("End of subreddit encountered; Aborting after having processed %d URLs." %self.processed_url_count, file=sys.stderr)
@@ -310,13 +310,13 @@ def save_pages(urls, outpath_prefix, max_retries):
 					
 	return result
 		
-def scrape_reddit_thing_urls_from_response(response):
+def parse_reddit_thing_urls_from_response(response):
 	data = response.json()["data"]
-	reddit_thing_urls = scrape_reddit_thing_urls(data)
+	reddit_thing_urls = parse_reddit_thing_urls(data)
 	last_thing_name = data["after"]
 	return reddit_thing_urls, last_thing_name
 
-def scrape_reddit_thing_urls(data):
+def parse_reddit_thing_urls(data):
 	children = data["children"]
 	#print("Processing %d child(ren)." % len(children))
 	for child in children:
