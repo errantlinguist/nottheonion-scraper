@@ -27,13 +27,13 @@ from collections import deque
 from urllib.parse import urlsplit
 
 DEFAULT_EXPECTED_CONTENT_TYPE="text/html"
-DEFAULT_OUTPATH_SUFFIX = mimetypes.guess_extension(__DEFAULT_EXPECTED_CONTENT_TYPE)
+DEFAULT_OUTPATH_SUFFIX = mimetypes.guess_extension(DEFAULT_EXPECTED_CONTENT_TYPE)
 DEFAULT_REQUEST_CHARSET = "UTF-8"
 
 URL_FILENAME_TRANSLATION_TABLE = {ord(':') : '-', ord('/') : os.path.sep, ord('\\') : '-', ord('*') : '-', ord('?') : '-', ord('"') : '\'', ord('<') : '-', ord('>') : '-', ord('|') : '-', ord('\0') : '0', ord('.') : os.path.sep}
 
 __CRAWLING_REQUEST_HEADERS = {
-	"Accept" : __DEFAULT_EXPECTED_CONTENT_TYPE + ";application/xhtml+xml",
+	"Accept" : DEFAULT_EXPECTED_CONTENT_TYPE + ";application/xhtml+xml",
 	"Accept-Charset" : DEFAULT_REQUEST_CHARSET,
 	"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.102 Safari/537.36"
 }
@@ -209,7 +209,7 @@ def create_url_filename(url_str, content_type):
 			result = filename_without_ext + canonical_ext
 		else:
 			# Just add some extention
-			result = filename_without_ext + __DEFAULT_OUTPATH_SUFFIX
+			result = filename_without_ext + DEFAULT_OUTPATH_SUFFIX
 	
 	return result
 	
@@ -259,7 +259,7 @@ def save_pages(urls, outpath_prefix, max_retries):
 			#print("Guessed URL content type to be \"%s\"." % guessed_content_type, file=sys.stderr)
 			pass
 		else:
-			guessed_content_type = __DEFAULT_EXPECTED_CONTENT_TYPE
+			guessed_content_type = DEFAULT_EXPECTED_CONTENT_TYPE
 			#print("Could not guess URL content type; Defaulting to \"%s\"." % guessed_content_type, file=sys.stderr)
 		guessed_outpath_filename = create_url_filename(url, guessed_content_type)
 		outpath = os.path.join(outpath_prefix, guessed_outpath_filename)
