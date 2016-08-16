@@ -337,7 +337,7 @@ def write_to_unknown_dir(outpath, content):
 		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Scrape all links from the subreddit \"nottheonion\" and then crawl and save each the linked page.")
-	parser.add_argument("-s", "--subreddit", default="nottheonion", help="The name of the subreddit to crawl.")
+	parser.add_argument("subreddit", help="The name of the subreddit to crawl.")
 	parser.add_argument("secret", help="The reddit application secret.")
 	parser.add_argument("outdir", help="The directory path under which the crawled pages will be saved.")
 	parser.add_argument("-l", "--limit", default=None, help="The total number of reddit links to process.", metavar="COUNT", type=int)
